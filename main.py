@@ -1,3 +1,5 @@
+# main.py
+
 import os
 import asyncio
 import discord
@@ -6,16 +8,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+# あなたのサーバーID
+GUILD_ID = 1392293394071425054 
 
 class MyBot(commands.Bot):
     def __init__(self):
         super().__init__(
             command_prefix='!',
-            intents=discord.Intents.all() # 開発中は全て有効にすると便利
+            intents=discord.Intents.all()
         )
 
     async def setup_hook(self):
-        # cogsディレクトリ内のすべての.pyファイルを拡張機能としてロード
+        # cogsのロード処理
+        print("-" * 30)
         for filename in os.listdir('./cogs'):
             if filename.endswith('.py') and filename != "__init__.py":
                 try:
@@ -23,13 +28,15 @@ class MyBot(commands.Bot):
                     print(f'Loaded extension: {filename}')
                 except Exception as e:
                     print(f'Failed to load extension {filename}: {e}')
-
-        # スラッシュコマンドを同期
+        
+        # 同期処理
         try:
-            synced = await self.tree.sync()
-            print(f"Synced {len(synced)} command(s)")
+            guild = discord.Object(id=GUILD_ID)
+            synced = await self.tree.sync(guild=guild)
+            print(f"Synced {len(synced)} command(s) to guild {GUILD_ID}")
+            print("-" * 30)
         except Exception as e:
-            print(f"Failed to sync commands: {e}")
+            print(f"Failed to sync commands to guild: {e}")
 
     async def on_ready(self):
         print(f'{self.user} としてログインしました。')
