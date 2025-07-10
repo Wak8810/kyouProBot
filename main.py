@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 # あなたのサーバーID
-GUILD_ID = 1392293394071425054 
+GUILD_ID = 1392293394071425054
 
 class MyBot(commands.Bot):
     def __init__(self):
@@ -29,7 +29,6 @@ class MyBot(commands.Bot):
                 except Exception as e:
                     print(f'Failed to load extension {filename}: {e}')
         
-        # 同期処理
         try:
             guild = discord.Object(id=GUILD_ID)
             synced = await self.tree.sync(guild=guild)
@@ -44,6 +43,11 @@ class MyBot(commands.Bot):
 
 async def main():
     bot = MyBot()
+
+    @bot.tree.command(name="ping_main", description="main.pyから直接登録した生存確認コマンド", guild=discord.Object(id=GUILD_ID))
+    async def ping_main(interaction: discord.Interaction):
+        await interaction.response.send_message("Pong from main.py!", ephemeral=True)
+
     await bot.start(TOKEN)
 
 if __name__ == '__main__':
