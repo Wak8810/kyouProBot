@@ -3,6 +3,7 @@
 import os
 import asyncio
 import discord
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -21,21 +22,28 @@ class MyBot(commands.Bot):
     async def setup_hook(self):
         # cogsのロード処理
         print("-" * 30)
+        excluded_files = ["__init__.py", "problem_tracker.py"]
+        loaded_extensions = []
+        failed_extensions = []
         for filename in os.listdir('./cogs'):
-            if filename.endswith('.py') and filename != "__init__.py":
+            if filename.endswith('.py') and filename not in excluded_files:
                 try:
                     await self.load_extension(f'cogs.{filename[:-3]}')
-                    print(f'Loaded extension: {filename}')
+                    loaded_extensions.append(filename)
                 except Exception as e:
-                    print(f'Failed to load extension {filename}: {e}')
-        
-        try:
-            guild = discord.Object(id=GUILD_ID)
-            synced = await self.tree.sync(guild=guild)
-            print(f"Synced {len(synced)} command(s) to guild {GUILD_ID}")
+                    failed_extensions.append((filename, e))
+
+        for filename in loaded_extensions:
+            print(f'Loaded extension: {filename}')
+
+        if failed_extensions:
             print("-" * 30)
-        except Exception as e:
-            print(f"Failed to sync commands to guild: {e}")
+            print("Failed to load the following extensions:")
+            for filename, error in failed_extensions:
+                print(f'- {filename}: {error}')
+        
+        # setup_hookではcogsのロードのみ行う
+        pass
 
     async def on_ready(self):
         print(f'{self.user} としてログインしました。')
@@ -44,9 +52,22 @@ class MyBot(commands.Bot):
 async def main():
     bot = MyBot()
 
-    @bot.tree.command(name="ping_main", description="main.pyから直接登録した生存確認コマンド", guild=discord.Object(id=GUILD_ID))
-    async def ping_main(interaction: discord.Interaction):
-        await interaction.response.send_message("Pong from main.py!", ephemeral=True)
+    @bot.command()
+    @commands.is_owner()
+    async def sync(ctx: commands.Context):
+        """オーナー用の手動コマンド同期"""
+        guild = discord.Object(id=GUILD_ID)
+        try:
+            # コマンドを同期
+            synced = await bot.tree.sync(guild=guild)
+            
+            await ctx.send(f"Synced {len(synced)} commands to the guild.")
+            print(f"Synced {len(synced)} commands to the guild.")
+            for cmd in synced:
+                print(f"- {cmd.name}")
+        except Exception as e:
+            await ctx.send(f"Failed to sync commands: {e}")
+            print(f"Failed to sync commands: {e}")
 
     await bot.start(TOKEN)
 
